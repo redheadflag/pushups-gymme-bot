@@ -1,7 +1,7 @@
 import datetime
 from pathlib import Path
 
-from pydantic import SecretStr, computed_field
+from pydantic import SecretStr
 from pydantic_settings import BaseSettings, SettingsConfigDict
 import pytz
 
@@ -22,6 +22,8 @@ class Settings(BaseSettings):
     TOPIC_ID: int
 
     TIMEZONE: str
+
+    RULES_URL: str
 
     @property
     def tzinfo(self) -> datetime.tzinfo:
