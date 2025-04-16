@@ -1,7 +1,9 @@
+import datetime
 from pathlib import Path
 
-from pydantic import SecretStr
+from pydantic import SecretStr, computed_field
 from pydantic_settings import BaseSettings, SettingsConfigDict
+import pytz
 
 
 BASE_DIR = Path(__file__).resolve().parent.parent.parent
@@ -16,6 +18,14 @@ class Settings(BaseSettings):
     )
 
     BOT_TOKEN: SecretStr
+    GROUP_ID: int
+    TOPIC_ID: int
+
+    TIMEZONE: str
+
+    @property
+    def tzinfo(self) -> datetime.tzinfo:
+        return pytz.timezone(self.TIMEZONE)
 
 
 class RedisSettings(BaseSettings):
