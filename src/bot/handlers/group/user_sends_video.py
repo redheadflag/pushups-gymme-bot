@@ -1,13 +1,13 @@
 import asyncio
 import logging
-import random
+
 from aiogram import F, Router
 from aiogram.enums import ContentType
-from aiogram.types import Message, ReactionTypeEmoji, gift
-from aiogram.utils.markdown import hlink
+from aiogram.types import Message
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from bot.filters.new_users import IsNewUser
+from core import strings
 from core.config import settings
 from core.utils import STREAK_FIRST_DAY_REACTION, bot_set_reaction
 from db.commands import add_pushup_entry
@@ -31,7 +31,7 @@ async def user_sends_video_handler(message: Message, session: AsyncSession, user
         return
     
     if user.streak == 1:
-        await message.reply("Добро пожаловать в клуб! 💪")
+        await message.reply(strings.STREAK_FIRST_DAY)
         await bot_set_reaction(
             message=message,
             emoji=STREAK_FIRST_DAY_REACTION,
@@ -50,13 +50,7 @@ async def user_sends_video_handler(message: Message, session: AsyncSession, user
 )
 async def new_user_sends_video(message: Message, session: AsyncSession, user: User):
     await asyncio.sleep(1)
-    await message.answer(
-        "\n\n".join([
-            f"Привет, {message.from_user.mention_html(message.from_user.first_name)}!",  # type: ignore
-            "Здесь мы делаем прокачиваемся каждый день, делая отжимания.",
-            f"Как я вижу, ты сразу врываешься в бой. Достойно уважения! Но на всякий случай, ознакомься с {hlink("правилами", settings.RULES_URL)}"
-        ]),
-    )
+    await message.answer(strings.GREETING_MESSAGE_SENT_VIDEO.format(message.from_user.mention_html(message.from_user.first_name)))  # type: ignore
 
     await asyncio.sleep(1)
     await user_sends_video_handler(message=message, session=session, user=user)
@@ -66,11 +60,4 @@ async def new_user_sends_video(message: Message, session: AsyncSession, user: Us
     IsNewUser(is_new=True)
 )
 async def message_new_user(message: Message, session: AsyncSession, user: User):
-    await message.answer(
-        "\n\n".join([
-            f"Привет, {message.from_user.mention_html(message.from_user.first_name)}!",  # type: ignore
-            "Здесь мы делаем прокачиваемся каждый день, делая отжимания.",
-            f"Присоединяйся к нам! Но для начала, ознакомься с {hlink("правилами", settings.RULES_URL)}"
-        ]),
-    )
-
+    await message.answer(strings.GREETING_MESSAGE_FIRST_MESSAGE.format(message.from_user.mention_html(message.from_user.first_name)))  # type: ignore
