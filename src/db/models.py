@@ -13,9 +13,11 @@ class User(TimeStampedMixin, Base):
     full_name: Mapped[str] = mapped_column(String(length=128), nullable=False)
 
     streak: Mapped[int] = mapped_column(SmallInteger, default=0)
-    last_completed: Mapped[datetime.date] = mapped_column(nullable=True)
+    last_completed: Mapped[datetime.date | None] = mapped_column(nullable=True)
     
     pushup_entries: Mapped[list["PushupEntry"]] = relationship(back_populates="user")
+
+    is_admin: Mapped[bool] = mapped_column(default=False)
 
 
 class PushupEntry(Base):

@@ -8,4 +8,6 @@ private_router = Router()
 private_router.message.filter(F.chat.type == ChatType.PRIVATE)
 
 
-private_router.include_router(start.router)
+private_router.include_routers(
+    start.router
+)

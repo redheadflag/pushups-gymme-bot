@@ -1,4 +1,4 @@
-from datetime import datetime, timedelta
+from datetime import date, datetime, timedelta
 import logging
 from typing import Generic, TypeVar
 
@@ -70,7 +70,7 @@ async def add_pushup_entry(session: AsyncSession, user: User) -> PushupEntry | N
     today_date = dt_now.date()
     today_time = dt_now.time()
     if user.last_completed == today_date:
-        logger.warning(
+        logger.info(
             "User id=%i has sent not the first video for today. Adding an entry is skipped",
             user.id 
         )
@@ -83,19 +83,61 @@ async def add_pushup_entry(session: AsyncSession, user: User) -> PushupEntry | N
     }
 
     pushup_entry = await pushup_entry_repository.create(session, data)
-    yesterday_date = today_date - timedelta(days=1)
-    
-    if user.last_completed == yesterday_date:
-        user.streak = user.streak + 1
-    else:
-        user.streak = 1
     
     logger.info(
-        "Created pushup entry id=%i, user.id=%i, user.streak=%i",
-        pushup_entry.id, user.id, user.streak
+        "Created pushup entry id=%i, user.id=%i",
+        pushup_entry.id, user.id,
     )
 
-    user.last_completed = today_date
+    await sync_user_streak(session=session, user=user)
+
+    return pushup_entry
+
+
+async def sync_user_streak(session: AsyncSession, user: User) -> User:
+    stmt = (
+        select(PushupEntry).
+        where(PushupEntry.user_id == user.id).
+        order_by(PushupEntry.date.desc())
+    )
+    entries = list(await session.scalars(stmt))
+
+    if len(entries) == 0:
+        user.streak = 0
+        user.last_completed = None
+    else:
+        latest_date = entries[0].date
+        user.last_completed = latest_date
+
+        streak = 0
+        if latest_date == datetime.now(settings.tzinfo).date():
+            for i, entry in enumerate(entries):
+                expected_date = latest_date - timedelta(days=streak)
+                if entry.date == expected_date:
+                    streak += 1
+                else:
+                    break
+        user.streak = streak
+    
     await session.commit()
     await session.refresh(user)
-    return pushup_entry
+
+    logger.info("The streak of <User id=%i> has been synchronized")
+    
+    return user
+
+
+async def remove_pushup_entry(session: AsyncSession, user_id: int, entry_date: date) -> None:
+    pushup_entry = await pushup_entry_repository.filter(
+        session,
+        PushupEntry.user_id == user_id,  # type: ignore
+        entry_date == PushupEntry.date  # type: ignore
+    )
+    
+    if len(pushup_entry) != 1:
+        raise ValueError(f"There are {len(pushup_entry)} entries for {entry_date} from user id={user_id}")
+    
+    pushup_entry = pushup_entry[0]
+    await session.delete(pushup_entry)
+    await session.commit()
+    await sync_user_streak(session, await user_repository.get(session, user_id))
