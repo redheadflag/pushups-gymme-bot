@@ -17,7 +17,7 @@ bot = Bot(
         parse_mode="HTML",
         link_preview=LinkPreviewOptions(
             is_disabled=True
-        )
+        ),
     )
 )
 

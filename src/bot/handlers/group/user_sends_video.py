@@ -1,4 +1,5 @@
 import asyncio
+from datetime import time
 import logging
 
 from aiogram import F, Router
@@ -30,6 +31,9 @@ async def user_sends_video_handler(message: Message, session: AsyncSession, user
     if not entry:
         return
     
+    if entry.timestamp > time(hour=23, minute=0):
+        await message.reply(strings.last_chance_msg())
+    
     if user.streak == 1:
         await message.reply(strings.STREAK_FIRST_DAY)
         await bot_set_reaction(
@@ -40,7 +44,7 @@ async def user_sends_video_handler(message: Message, session: AsyncSession, user
     else:
         await bot_set_reaction(
             message=message,
-            guaranteed=False
+            guaranteed=True
         )
 
 

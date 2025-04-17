@@ -37,7 +37,7 @@ async def get_session() -> AsyncGenerator[AsyncSession, None]:
 
 
 @broker.task(
-        schedule=[{"cron": "30 23 * * *", "cron_offset": settings.TIMEZONE}]
+        schedule=[{"cron": "00 23 * * *", "cron_offset": settings.TIMEZONE}]
 )
 async def daily_report_task(bot: Bot = TaskiqDepends(), session: AsyncSession = TaskiqDepends(get_session)):
     logger.info("Starting scheduled task")

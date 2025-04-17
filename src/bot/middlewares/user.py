@@ -1,10 +1,14 @@
+import logging
 from typing import Any, Awaitable, Callable, Dict
 from aiogram import BaseMiddleware
 from aiogram.types import Message
 
+from core.config import settings
 from db.commands import add_or_update_user, user_repository
 from db.models import User
 
+
+logger = logging.getLogger(__name__)
 
 class UserMiddleware(BaseMiddleware):
 
@@ -24,6 +28,9 @@ class UserMiddleware(BaseMiddleware):
 
         is_existing = isinstance(user, User)
         data["is_new"] = not(is_existing)
+
+        if message.chat.id != settings.GROUP_ID or message.message_thread_id != settings.TOPIC_ID:
+            return await handler(message, data)
 
         user = await add_or_update_user(
             session=session,

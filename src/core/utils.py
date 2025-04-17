@@ -12,6 +12,7 @@ STREAK_FIRST_DAY_REACTION = ReactionTypeEmoji(emoji="❤️‍🔥")
 
 
 async def bot_set_reaction(message: Message, emoji: ReactionTypeEmoji | None = None, guaranteed: bool = True):
+    # TODO: remove guaranteed param
     if not guaranteed:
         if random.random() < 0.8:
             return

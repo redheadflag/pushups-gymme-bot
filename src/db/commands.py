@@ -126,8 +126,10 @@ async def sync_user_streak(session: AsyncSession, user: User) -> User:
         latest_date = entries[0].date
         user.last_completed = latest_date
 
+        today_date = datetime.now(settings.tzinfo).date()
+
         streak = 0
-        if latest_date == datetime.now(settings.tzinfo).date():
+        if latest_date in [today_date, today_date - timedelta(days=1)]:
             for i, entry in enumerate(entries):
                 expected_date = latest_date - timedelta(days=streak)
                 if entry.date == expected_date:
