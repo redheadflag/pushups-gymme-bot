@@ -4,6 +4,7 @@ from typing import Generic, TypeVar
 
 from sqlalchemy import BinaryExpression, select
 from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy.orm import selectinload
 
 from core.config import settings
 from db.base import Base
@@ -30,16 +31,22 @@ class DatabaseRepository(Generic[Model]):
 
     async def get(self, session: AsyncSession, pk: int) -> Model | None:
         return await session.get(self.model, pk)
+    
+    async def get_all(
+        self,
+        session: AsyncSession
+    ) -> list[Model]:
+        return await self.filter(session=session)
 
     async def filter(
         self,
         session: AsyncSession,
         *expressions: BinaryExpression,
     ) -> list[Model]:
-        query = select(self.model)
+        stmt = select(self.model)
         if expressions:
-            query = query.where(*expressions)
-        return list(await session.scalars(query))
+            stmt = stmt.where(*expressions)
+        return list(await session.scalars(stmt))
 
 
 user_repository = DatabaseRepository(User)
@@ -63,6 +70,16 @@ async def add_or_update_user(session: AsyncSession, data: dict) -> User:
         logger.info("Create user id=%i", pk)
         user = await user_repository.create(session=session, data=data)
     return user
+
+
+async def get_all_users(session: AsyncSession) -> list[User]:
+    stmt = (
+        select(User).
+        options(selectinload(User.pushup_entries)).
+        order_by(User.streak.desc())
+    )
+
+    return list(await session.scalars(stmt))
 
 
 async def add_pushup_entry(session: AsyncSession, user: User) -> PushupEntry | None:

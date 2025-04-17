@@ -31,6 +31,48 @@ services:
       - action: rebuild
         path: ./uv.lock
   
+  worker:
+    image: bot:latest
+    
+    container_name: pushups-worker
+    command: ["taskiq", "worker", "worker.main:broker"]
+
+    working_dir: /app/src
+
+    environment:
+      - PYTHONPATH=/app/src
+    
+    depends_on:
+      db:
+        condition: service_healthy
+        restart: true
+      prestart:
+        condition: service_completed_successfully
+      redis:
+        condition: service_healthy
+        restart: true
+  
+  scheduler:
+    image: bot:latest
+
+    container_name: pushups-scheduler
+    command: ["taskiq", "scheduler", "worker.main:scheduler"]
+
+    working_dir: /app/src
+
+    environment:
+      - PYTHONPATH=/app/src
+    
+    depends_on:
+      db:
+        condition: service_healthy
+        restart: true
+      prestart:
+        condition: service_completed_successfully
+      redis:
+        condition: service_healthy
+        restart: true
+  
   prestart:
     image: bot:latest
     depends_on:

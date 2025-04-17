@@ -41,6 +41,11 @@ class RedisSettings(BaseSettings):
     HOST: str
     PORT: int
     DB: int = 0
+    TASKIQ_DB: int
+
+    @property
+    def taskiq_url(self) -> str:
+        return f"redis://{self.HOST}:{self.PORT}/{self.TASKIQ_DB}"
 
 
 class DbSettings(BaseSettings):

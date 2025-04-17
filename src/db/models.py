@@ -19,6 +19,13 @@ class User(TimeStampedMixin, Base):
 
     is_admin: Mapped[bool] = mapped_column(default=False)
 
+    @property
+    def mention(self) -> str:
+        if self.username:
+            return f"@{self.username}"
+        else:
+            return self.full_name
+
 
 class PushupEntry(Base):
     __tablename__ = "pushup_entries"

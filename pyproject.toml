@@ -13,5 +13,7 @@ dependencies = [
     "pytz>=2025.2",
     "redis>=5.2.1",
     "sqlalchemy>=2.0.40",
+    "taskiq-aiogram>=0.3.1",
+    "taskiq-redis>=1.0.5",
     "tenacity>=9.1.2",
 ]
