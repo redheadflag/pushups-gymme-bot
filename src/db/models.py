@@ -1,6 +1,10 @@
 import datetime
+
+from sqlalchemy.ext.asyncio import AsyncSession
+from starlette.requests import Request
 from sqlalchemy import BigInteger, Date, ForeignKey, SmallInteger, String
 from sqlalchemy.orm import Mapped, mapped_column, relationship
+
 from db.base import Base
 from db.mixins import TimeStampedMixin
 
@@ -25,6 +29,15 @@ class User(TimeStampedMixin, Base):
             return f"@{self.username}"
         else:
             return self.full_name
+    
+    def __str__(self) -> str:
+        s = f"{self.full_name}"
+        if self.username is not None:
+            s += f" @{self.username}"
+        return s
+    
+    async def __admin_repr__(self, request: Request) -> str:
+        return self.__str__()
 
 
 class PushupEntry(Base):
@@ -37,3 +50,8 @@ class PushupEntry(Base):
     quantity: Mapped[int] = mapped_column(nullable=True)
     date: Mapped[datetime.date] = mapped_column(nullable=False)
     timestamp: Mapped[datetime.time] = mapped_column(nullable=True)
+
+    async def __admin_repr__(self, request: Request) -> str: 
+        session: AsyncSession = request.state.session
+        await session.refresh(self, attribute_names=["user"])
+        return f"{str(self.user)}: {self.date.strftime("%d.%m.%Y")}"

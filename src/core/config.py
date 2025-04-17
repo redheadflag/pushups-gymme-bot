@@ -67,6 +67,28 @@ class DbSettings(BaseSettings):
         return f"postgresql+psycopg://{self.USER}:{self.PASSWORD}@{self.HOST}:{self.PORT}/{self.DB}"
 
 
+class AdminSettings(BaseSettings):
+
+    HOST: str
+    PORT: int
+    ENDPOINT: str
+
+    SECRET_TOKEN: SecretStr
+    ACCESS_TOKEN_EXPIRE_MINUTES: int
+
+    USERNAME: str
+    PASSWORD: str
+
+
+    model_config = SettingsConfigDict(
+        env_file=str(ENV_FILE),
+        env_file_encoding="utf-8",
+        env_prefix="ADMIN_",
+        extra="ignore"
+    )
+
+
+admin_settings = AdminSettings()  # type: ignore
 redis_settings = RedisSettings()  # type: ignore
 db_settings = DbSettings()  # type: ignore
 settings = Settings()  # type: ignore

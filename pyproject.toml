@@ -7,13 +7,17 @@ requires-python = ">=3.13"
 dependencies = [
     "aiogram>=3.20.0",
     "alembic>=1.15.2",
+    "itsdangerous>=2.2.0",
     "psycopg[binary]>=3.2.6",
     "pydantic>=2.11.3",
     "pydantic-settings>=2.8.1",
     "pytz>=2025.2",
     "redis>=5.2.1",
     "sqlalchemy>=2.0.40",
+    "starlette>=0.46.2",
+    "starlette-admin[i18n]>=0.14.1",
     "taskiq-aiogram>=0.3.1",
     "taskiq-redis>=1.0.5",
     "tenacity>=9.1.2",
+    "uvicorn>=0.34.1",
 ]

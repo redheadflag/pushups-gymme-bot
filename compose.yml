@@ -73,6 +73,31 @@ services:
         condition: service_healthy
         restart: true
   
+  admin:
+    image: bot:latest
+    container_name: pushups-admin
+
+    command: ["uvicorn", "admin:app", "--host", "${ADMIN_HOST}", "--port", "8000"]
+
+    depends_on:
+      db:
+        condition: service_healthy
+        restart: true
+      prestart:
+        condition: service_completed_successfully
+      redis:
+        condition: service_healthy
+        restart: true
+    
+    working_dir: /app/src
+    environment:
+      - PYTHONPATH=/app/src
+    
+    ports:
+      - "${ADMIN_PORT}:8000"
+    
+
+  
   prestart:
     image: bot:latest
     depends_on:
