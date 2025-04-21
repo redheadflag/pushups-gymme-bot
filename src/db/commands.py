@@ -119,30 +119,34 @@ async def sync_user_streak(session: AsyncSession, user: User) -> User:
     )
     entries = list(await session.scalars(stmt))
 
-    if len(entries) == 0:
+    if not entries:
         user.streak = 0
         user.last_completed = None
-    else:
-        latest_date = entries[0].date
-        user.last_completed = latest_date
+        return user
 
-        today_date = datetime.now(settings.tzinfo).date()
+    latest_date = entries[0].date
+    user.last_completed = latest_date
 
-        streak = 0
-        if latest_date in [today_date, today_date - timedelta(days=1)]:
-            for i, entry in enumerate(entries):
-                expected_date = latest_date - timedelta(days=streak)
-                if entry.date == expected_date:
-                    streak += 1
-                else:
-                    break
-        user.streak = streak
-    
-    await session.commit()
-    await session.refresh(user)
+    today_date = datetime.now(settings.tzinfo).date()
+    if latest_date < today_date - timedelta(days=2):
+        user.streak = 0
+        return user
 
-    logger.info("The streak of <User id=%i> has been synchronized")
-    
+    streak = 1
+    previous_date = latest_date
+
+    for entry in entries[1:]:
+        delta_days = (previous_date - entry.date).days
+        if delta_days == 1:
+            streak += 1
+            previous_date = entry.date
+        elif delta_days == 2:
+            streak += 1
+            previous_date = entry.date
+        else:
+            break
+
+    user.streak = streak
     return user
 
 
