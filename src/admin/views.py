@@ -14,7 +14,7 @@ logger = logging.getLogger(__name__)
 
 
 class UserView(ModelView):
-    pass
+    form_include_pk = True
 
 
 class PushupEntryView(ModelView):
