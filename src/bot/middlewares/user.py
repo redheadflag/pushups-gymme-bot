@@ -20,8 +20,8 @@ class UserMiddleware(BaseMiddleware):
     ) -> Any:
         data["user"] = None
         data["is_new"] = None
-        if not message.from_user:
-            return await handler(message, data)
+        if not message.from_user or message.from_user.is_bot:
+            return
         session = data["session"]
         user_id = message.from_user.id
         user = await user_repository.get(session, pk=user_id)
