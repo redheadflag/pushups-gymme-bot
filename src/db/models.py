@@ -2,7 +2,7 @@ import datetime
 
 from sqlalchemy.ext.asyncio import AsyncSession
 from starlette.requests import Request
-from sqlalchemy import BigInteger, Date, ForeignKey, SmallInteger, String
+from sqlalchemy import BigInteger, ForeignKey, SmallInteger, String
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from db.base import Base
@@ -50,6 +50,9 @@ class PushupEntry(Base):
     quantity: Mapped[int] = mapped_column(nullable=True)
     date: Mapped[datetime.date] = mapped_column(nullable=False)
     timestamp: Mapped[datetime.time] = mapped_column(nullable=True)
+
+    def __str__(self) -> str:
+        return f"Entry id={self.date.strftime("%d.%m.%Y")} user_id={self.user_id}"
 
     async def __admin_repr__(self, request: Request) -> str: 
         session: AsyncSession = request.state.session

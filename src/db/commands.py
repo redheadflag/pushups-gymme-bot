@@ -130,6 +130,8 @@ async def sync_user_streak(session: AsyncSession, user: User) -> User:
     today_date = datetime.now(settings.tzinfo).date()
     if latest_date < today_date - timedelta(days=2):
         user.streak = 0
+        await session.commit()
+        await session.refresh(user)
         return user
 
     streak = 1
@@ -147,6 +149,8 @@ async def sync_user_streak(session: AsyncSession, user: User) -> User:
             break
 
     user.streak = streak
+    await session.commit()
+    await session.refresh(user)
     return user
 
 
