@@ -38,7 +38,7 @@ async def user_sends_video_handler(message: Message, session: AsyncSession, user
         await message.reply(strings.STREAK_FIRST_DAY)
         await bot_set_reaction(
             message=message,
-            emoji=STREAK_FIRST_DAY_REACTION,
+            reaction=STREAK_FIRST_DAY_REACTION,
             guaranteed=True
         )
     else:
