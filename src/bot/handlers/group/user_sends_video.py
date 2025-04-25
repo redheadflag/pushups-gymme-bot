@@ -1,6 +1,7 @@
 import asyncio
 from datetime import time
 import logging
+from re import Match
 
 from aiogram import F, Router
 from aiogram.enums import ContentType
@@ -11,8 +12,8 @@ from bot.filters.new_users import IsNewUser
 from core import strings
 from core.config import settings
 from core.utils import STREAK_FIRST_DAY_REACTION, bot_set_reaction
-from db.commands import add_pushup_entry
-from db.models import User
+from db.commands import add_pushup_entry, pushup_entry_repository
+from db.models import PushupEntry, User
 
 
 logger = logging.getLogger(__name__)
@@ -58,6 +59,32 @@ async def new_user_sends_video(message: Message, session: AsyncSession, user: Us
 
     await asyncio.sleep(1)
     await user_sends_video_handler(message=message, session=session, user=user)
+
+
+@pushups_router.message(
+    IsNewUser(is_new=False),
+    F.reply_to_message,
+    F.text.regexp(r"^\d*\.?\d+$").as_("quantity")
+)
+async def add_pushups_quantity(message: Message, session: AsyncSession, quantity: Match[str]):
+    replied_message = message.reply_to_message
+    if not replied_message:
+        return
+    if replied_message.content_type not in [ContentType.VIDEO_NOTE, ContentType.VIDEO]:
+        return
+    entry_date = replied_message.date.astimezone(settings.tzinfo).date()
+    entry = await pushup_entry_repository.filter(
+        session,
+        PushupEntry.user_id == replied_message.from_user.id,
+        PushupEntry.date == entry_date
+    )
+    if len(entry) == 1:
+        entry = entry[0]
+        entry.quantity = int(float(quantity.group()))
+        await session.commit()
+        await message.reply("Добавил в статистику!")
+    else:
+        await message.reply("Запись не найдена :(")
 
 
 @pushups_router.message(
