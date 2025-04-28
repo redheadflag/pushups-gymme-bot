@@ -1,6 +1,7 @@
 import datetime
 from pathlib import Path
 
+from aiogram.enums import ContentType
 from pydantic import SecretStr
 from pydantic_settings import BaseSettings, SettingsConfigDict
 import pytz
@@ -24,6 +25,8 @@ class Settings(BaseSettings):
     TIMEZONE: str
 
     RULES_URL: str
+    
+    ALLOWED_CONTENT_TYPES: list[ContentType] = [ContentType.VIDEO_NOTE, ContentType.VIDEO, ContentType.ANIMATION]
 
     @property
     def tzinfo(self) -> datetime.tzinfo:

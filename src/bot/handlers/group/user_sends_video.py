@@ -4,7 +4,7 @@ import logging
 from re import Match
 
 from aiogram import F, Router
-from aiogram.enums import ContentType
+from aiogram.enums import ContentType, content_type
 from aiogram.types import Message
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -24,7 +24,7 @@ pushups_router.message.filter(F.message_thread_id == settings.TOPIC_ID)
 
 
 @pushups_router.message(
-    F.content_type.in_([ContentType.VIDEO_NOTE, ContentType.VIDEO]),
+    F.content_type.in_(settings.ALLOWED_CONTENT_TYPES),
     IsNewUser(is_new=False)
 )
 async def user_sends_video_handler(message: Message, session: AsyncSession, user: User):
@@ -50,7 +50,7 @@ async def user_sends_video_handler(message: Message, session: AsyncSession, user
 
 
 @pushups_router.message(
-    F.content_type.in_([ContentType.VIDEO_NOTE, ContentType.VIDEO]),
+    F.content_type.in_([settings.ALLOWED_CONTENT_TYPES]),
     IsNewUser(is_new=True)
 )
 async def new_user_sends_video(message: Message, session: AsyncSession, user: User):
@@ -64,14 +64,11 @@ async def new_user_sends_video(message: Message, session: AsyncSession, user: Us
 @pushups_router.message(
     IsNewUser(is_new=False),
     F.reply_to_message,
-    F.text.regexp(r"^\d*\.?\d+$").as_("quantity")
+    F.text.regexp(r"^\d*\.?\d+$").as_("quantity"),
+    F.reply_to_message.content_type.in_(settings.ALLOWED_CONTENT_TYPES)
 )
 async def add_pushups_quantity(message: Message, session: AsyncSession, quantity: Match[str]):
     replied_message = message.reply_to_message
-    if not replied_message:
-        return
-    if replied_message.content_type not in [ContentType.VIDEO_NOTE, ContentType.VIDEO]:
-        return
     entry_date = replied_message.date.astimezone(settings.tzinfo).date()
     entry = await pushup_entry_repository.filter(
         session,
