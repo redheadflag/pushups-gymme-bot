@@ -4,8 +4,7 @@ import logging
 from re import Match
 
 from aiogram import F, Router
-from aiogram.enums import ContentType, content_type
-from aiogram.types import Message
+from aiogram.types import Message, ReactionTypeEmoji
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from bot.filters.new_users import IsNewUser
@@ -50,7 +49,7 @@ async def user_sends_video_handler(message: Message, session: AsyncSession, user
 
 
 @pushups_router.message(
-    F.content_type.in_([settings.ALLOWED_CONTENT_TYPES]),
+    F.content_type.in_(settings.ALLOWED_CONTENT_TYPES),
     IsNewUser(is_new=True)
 )
 async def new_user_sends_video(message: Message, session: AsyncSession, user: User):
@@ -79,7 +78,8 @@ async def add_pushups_quantity(message: Message, session: AsyncSession, quantity
         entry = entry[0]
         entry.quantity = int(float(quantity.group()))
         await session.commit()
-        await message.reply("Добавил в статистику!")
+        await message.react(reaction=[ReactionTypeEmoji(emoji="👍")])
+        # await message.reply("Добавил в статистику!")
     else:
         await message.reply("Запись не найдена :(")
 

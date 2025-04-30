@@ -166,5 +166,5 @@ async def remove_pushup_entry(session: AsyncSession, user_id: int, entry_date: d
     
     pushup_entry = pushup_entry[0]
     await session.delete(pushup_entry)
-    await session.commit()
+    await session.flush()
     await sync_user_streak(session, await user_repository.get(session, user_id))

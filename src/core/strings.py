@@ -48,6 +48,8 @@ def get_daily_report(users: list[User], dt: date) -> str:
             sign = "✅"
         elif user.last_completed == dt - timedelta(days=1):
             sign = "⚠️"
+        elif user.last_completed == dt - timedelta(days=2):
+            sign = "❄️"
         else:
             sign = "❌"
         

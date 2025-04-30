@@ -6,8 +6,8 @@ from aiogram.types import Message, ReactionTypeEmoji
 
 logger = logging.getLogger(__name__)
 
-REACTION_LIST = ["❤", "🫡", "👍", "👀", "🥴", "🙈", "🍌", "⚡", "🔥"]
-WEIGHTS = [15, 4, 16, 1, 3, 1, 1, 3, 10]
+REACTION_LIST = ["❤", "🫡", "👍", "👀", "🥴", "🙈", "🍌", "⚡", "🔥", "🏆"]
+WEIGHTS = [15, 4, 16, 1, 3, 1, 1, 3, 10, 3]
 
 STREAK_FIRST_DAY_REACTION = ReactionTypeEmoji(emoji="❤️‍🔥")
 
