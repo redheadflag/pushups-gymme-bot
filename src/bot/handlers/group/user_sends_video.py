@@ -1,9 +1,11 @@
 import asyncio
-from datetime import time
 import logging
+import re
+from datetime import time
 from re import Match
 
 from aiogram import F, Router
+from aiogram.enums import ContentType
 from aiogram.types import Message, ReactionTypeEmoji
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -31,6 +33,12 @@ async def user_sends_video_handler(message: Message, session: AsyncSession, user
     if not entry:
         return
     
+    if message.content_type == ContentType.VIDEO \
+            and message.caption \
+            and re.fullmatch(r"^\d*\.?\d+$", message.caption):
+        entry.quantity = int(message.caption)
+        await session.commit()
+
     if entry.timestamp > time(hour=23, minute=0):
         await message.reply(strings.last_chance_msg())
     
