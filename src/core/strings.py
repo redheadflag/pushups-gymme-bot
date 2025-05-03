@@ -44,6 +44,8 @@ def get_daily_report(users: list[User], dt: date) -> str:
     
     users_progress = list()
     for user in users:
+        if user.streak == 0:
+            continue
         if user.last_completed == dt:
             sign = "✅"
         elif user.last_completed == dt - timedelta(days=1):

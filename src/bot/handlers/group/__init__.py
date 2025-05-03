@@ -11,6 +11,6 @@ group_router.message.filter(F.chat.type == ChatType.SUPERGROUP)
 
 
 group_router.include_routers(
+    commands.command_router,
     user_sends_video.pushups_router,
-    commands.command_router
 )
