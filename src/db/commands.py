@@ -82,6 +82,43 @@ async def get_all_users(session: AsyncSession) -> list[User]:
     return list(await session.scalars(stmt))
 
 
+async def get_early_bird_user(session: AsyncSession, dt: date) -> User | None:
+    stmt = (
+        select(User).
+        join(PushupEntry).
+        where(PushupEntry.date == dt).
+        order_by(PushupEntry.timestamp).
+        limit(1)
+    )
+
+    return await session.scalar(stmt)
+
+
+async def get_strongest_user(session: AsyncSession, dt: date) -> User | None:
+    stmt = (
+        select(User).
+        join(PushupEntry).
+        where(PushupEntry.date == dt).
+        where(PushupEntry.quantity.isnot(None)).
+        order_by(PushupEntry.quantity.desc()).
+        limit(1)
+    )
+
+    return await session.scalar(stmt)
+
+
+async def get_last_wagon_user(session: AsyncSession, dt: date) -> User | None:
+    stmt = (
+        select(User).
+        join(PushupEntry).
+        where(PushupEntry.date == dt).
+        order_by(PushupEntry.timestamp.desc()).
+        limit(1)
+    )
+
+    return await session.scalar(stmt)
+
+
 async def add_pushup_entry(session: AsyncSession, user: User) -> PushupEntry | None:
     dt_now = datetime.now(settings.tzinfo)
     today_date = dt_now.date()

@@ -39,7 +39,7 @@ async def user_sends_video_handler(message: Message, session: AsyncSession, user
         entry.quantity = int(message.caption)
         await session.commit()
 
-    if entry.timestamp > time(hour=23, minute=0):
+    if entry.timestamp > time(hour=23, minute=55):
         await message.reply(strings.last_chance_msg())
     
     if user.streak == 1:

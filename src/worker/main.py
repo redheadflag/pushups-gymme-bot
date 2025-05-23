@@ -1,4 +1,4 @@
-from datetime import datetime
+from datetime import datetime, timedelta
 import logging
 from typing import AsyncGenerator
 
@@ -11,8 +11,9 @@ import taskiq_aiogram
 
 from core.config import settings, redis_settings
 from core.strings import get_daily_report
+from core.utils import send_daily_report
 from db.base import sessionmaker
-from db.commands import get_all_users
+from db.commands import get_all_users, get_early_bird_user
 
 
 logger = logging.getLogger(__name__)
@@ -41,14 +42,12 @@ async def get_session() -> AsyncGenerator[AsyncSession, None]:
 )
 async def daily_report_task(bot: Bot = TaskiqDepends(), session: AsyncSession = TaskiqDepends(get_session)):
     logger.info("Starting scheduled task")
-
-    users = await get_all_users(session=session)
-    text = get_daily_report(users=users, dt=datetime.now().astimezone(settings.tzinfo).date())
     
-    await bot.send_message(
+    await send_daily_report(
+        session=session,
+        bot=bot,
         chat_id=settings.GROUP_ID,
-        message_thread_id=settings.TOPIC_ID,
-        text=text
+        dt=datetime.now().astimezone(settings.tzinfo).date()
     )
 
     logger.info("Daily report was sent")

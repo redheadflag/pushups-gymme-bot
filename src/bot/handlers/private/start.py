@@ -1,4 +1,4 @@
-from datetime import datetime
+from datetime import datetime, timedelta
 import logging
 from aiogram import Bot, Router
 from aiogram.filters import CommandStart
@@ -7,8 +7,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from bot.middlewares.throttling import rate_limit
 from core.config import settings
-from core.strings import get_daily_report
-from db.commands import get_all_users
+from core.utils import send_daily_report
 
 
 logger = logging.getLogger(__name__)
@@ -32,6 +31,9 @@ async def start_command_handler(message: Message, session: AsyncSession):
 @router.message()
 @rate_limit(limit=5)
 async def echo(message: Message, session: AsyncSession, bot: Bot):
-    users = await get_all_users(session=session)
-    text = get_daily_report(users=users, dt=datetime.now().astimezone(settings.tzinfo).date())
-    await message.answer(text=text)
+    await send_daily_report(
+        session=session,
+        bot=bot,
+        chat_id=message.chat.id,
+        dt=datetime.now().astimezone(settings.tzinfo).date()
+    )

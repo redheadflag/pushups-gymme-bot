@@ -1,5 +1,6 @@
 import datetime
 
+from aiogram.utils.markdown import hlink
 from sqlalchemy.ext.asyncio import AsyncSession
 from starlette.requests import Request
 from sqlalchemy import BigInteger, ForeignKey, SmallInteger, String
@@ -35,6 +36,10 @@ class User(TimeStampedMixin, Base):
         if self.username is not None:
             s += f" @{self.username}"
         return s
+    
+    @property
+    def as_hlink(self) -> str:
+        return hlink(self.mention, f"tg://user?id={self.id}")
     
     async def __admin_repr__(self, request: Request) -> str:
         return self.__str__()

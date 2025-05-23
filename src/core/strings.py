@@ -38,9 +38,18 @@ def last_chance_msg() -> str:
     return random.choice(ATHLETE_REFERENCES) + "\n\n" + "Ты успел сделать отжимания в последний вагон 🚃"
 
 
-def get_daily_report(users: list[User], dt: date) -> str:
+def get_daily_report(
+    users: list[User],
+    dt: date,
+    early_bird_user: User | None = None,
+    last_wagon_user: User | None = None,
+    strongest_user: User | None = None
+) -> str:
     text_parts = list()
-    text_parts.append(f"Отчёт за {dt.strftime("%d.%m.%Y")}")
+    text_parts.append(
+        f"Отчёт за {dt.strftime("%d.%m.%Y")}\n" +
+        f"Спортсменов: {sum(1 for u in users if u.last_completed in [dt, dt - timedelta(days=1), dt - timedelta(days=2)])}" 
+    )
     
     users_progress = list()
     for user in users:
@@ -55,9 +64,24 @@ def get_daily_report(users: list[User], dt: date) -> str:
         else:
             sign = "❌"
         
-        users_progress.append(f"{sign} ({user.streak}) {hlink(user.mention, f"tg://user?id={user.id}")}")
+        users_progress.append(f"{sign} {hlink(user.mention, f"tg://user?id={user.id}")}")
     
     text_parts.append("\n".join(users_progress))
+
+    if any([early_bird_user, last_wagon_user, strongest_user]):
+        yesterday_nominations = list()
+        yesterday_nominations.append(f"Номинации за вчера ({(dt - timedelta(days=1)).strftime("%d.%m.%Y")})\n")
+
+        if early_bird_user:
+            yesterday_nominations.append(f"🐦 Ранняя пташка: {early_bird_user.as_hlink}")
+        
+        if last_wagon_user:
+            yesterday_nominations.append(f"🚂 Последний вагон: {last_wagon_user.as_hlink}")
+
+        if strongest_user:
+            yesterday_nominations.append(f"💪 Самое большое количество отжиманий: {strongest_user.as_hlink}")
+
+        text_parts.append("\n".join(yesterday_nominations))
 
     text = "\n\n".join(text_parts)
     return text
