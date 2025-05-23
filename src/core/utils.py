@@ -31,7 +31,7 @@ async def bot_set_reaction(message: Message, reaction: ReactionTypeEmoji | None 
     await message.react(reaction=[reaction], is_big=is_big)
 
 
-async def send_daily_report(session: AsyncSession, bot: Bot, chat_id: int, dt: date):
+async def send_daily_report(session: AsyncSession, bot: Bot, chat_id: int, dt: date, topic_id: int | None = None):
     users = await get_all_users(session=session)
     yesterday_date = dt - timedelta(days=1)
 
@@ -46,4 +46,5 @@ async def send_daily_report(session: AsyncSession, bot: Bot, chat_id: int, dt: d
         strongest_user=strongest_user,
         last_wagon_user=last_wagon_user
     )
-    await bot.send_message(chat_id=chat_id, text=text)
+    
+    await bot.send_message(chat_id=chat_id, message_thread_id=topic_id, text=text)

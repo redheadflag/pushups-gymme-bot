@@ -47,6 +47,7 @@ async def daily_report_task(bot: Bot = TaskiqDepends(), session: AsyncSession = 
         session=session,
         bot=bot,
         chat_id=settings.GROUP_ID,
+        topic_id=settings.TOPIC_ID,
         dt=datetime.now().astimezone(settings.tzinfo).date()
     )
 
