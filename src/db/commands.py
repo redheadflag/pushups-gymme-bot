@@ -1,8 +1,8 @@
-from datetime import date, datetime, timedelta
+from datetime import date, datetime, time, timedelta
 import logging
 from typing import Generic, TypeVar
 
-from sqlalchemy import BinaryExpression, select
+from sqlalchemy import BinaryExpression, Time, cast, select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
@@ -87,6 +87,7 @@ async def get_early_bird_user(session: AsyncSession, dt: date) -> User | None:
         select(User).
         join(PushupEntry).
         where(PushupEntry.date == dt).
+        where(cast(PushupEntry.timestamp, Time) > time(4, 0)).
         order_by(PushupEntry.timestamp).
         limit(1)
     )
