@@ -39,3 +39,7 @@ class PushupEntryView(ModelView):
 
     async def after_delete(self, request: Request, obj: PushupEntry) -> None:
         await self.after_change(request, obj)
+
+
+class PointsTransactionView(ModelView):
+    form_include_pk = True

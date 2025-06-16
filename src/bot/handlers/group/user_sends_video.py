@@ -2,29 +2,29 @@ import asyncio
 import logging
 import re
 from datetime import time
-from re import Match
 
 from aiogram import F, Router
 from aiogram.enums import ContentType
-from aiogram.types import Message, ReactionTypeEmoji
+from aiogram.types import Message
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from bot.enums import PointEvent
 from bot.filters.new_users import IsNewUser
+from bot.utils import get_current_datetime
 from core import strings
 from core.config import settings
 from core.utils import STREAK_FIRST_DAY_REACTION, bot_set_reaction
-from db.commands import add_pushup_entry, pushup_entry_repository
-from db.models import PushupEntry, User
+from db.commands import add_pushup_entry, change_points
+from db.models import User
 
 
 logger = logging.getLogger(__name__)
 
 
-pushups_router = Router()
-pushups_router.message.filter(F.message_thread_id == settings.TOPIC_ID)
+router = Router()
 
 
-@pushups_router.message(
+@router.message(
     F.content_type.in_(settings.ALLOWED_CONTENT_TYPES),
     IsNewUser(is_new=False)
 )
@@ -43,20 +43,39 @@ async def user_sends_video_handler(message: Message, session: AsyncSession, user
         await message.reply(strings.last_chance_msg())
     
     if user.streak == 1:
-        await message.reply(strings.STREAK_FIRST_DAY)
-        await bot_set_reaction(
-            message=message,
-            reaction=STREAK_FIRST_DAY_REACTION,
-            guaranteed=True
-        )
+        if user.created_at.date == get_current_datetime().date:
+            await message.reply(strings.STREAK_FIRST_DAY)
+            await bot_set_reaction(
+                message=message,
+                reaction=STREAK_FIRST_DAY_REACTION,
+                guaranteed=True
+            )
+        else:
+            await change_points(session, PointEvent.FIRST_PUSHUPS.value, user=user)
+            await bot_set_reaction(
+                message=message,
+                guaranteed=True
+            )
+            await message.reply(strings.USER_WELCOME_BACK.format(user.mention))
     else:
+        additional_message = str()
+        if user.streak == 30:
+            await change_points(session, PointEvent.STREAK_30_DAYS.value, user=user)
+            additional_message = strings.STREAK_30_DAYS.format(user=str(user))
+        elif user.streak == 100:
+            await change_points(session, PointEvent.STREAK_100_DAYS.value, user=user)
+            additional_message = strings.STREAK_100_DAYS.format(user=str(user))
+        
+        if additional_message is not None:
+            await message.reply(additional_message)
+        
         await bot_set_reaction(
             message=message,
             guaranteed=True
         )
 
 
-@pushups_router.message(
+@router.message(
     F.content_type.in_(settings.ALLOWED_CONTENT_TYPES),
     IsNewUser(is_new=True)
 )
@@ -68,31 +87,7 @@ async def new_user_sends_video(message: Message, session: AsyncSession, user: Us
     await user_sends_video_handler(message=message, session=session, user=user)
 
 
-@pushups_router.message(
-    IsNewUser(is_new=False),
-    F.reply_to_message,
-    F.text.regexp(r"^\d*\.?\d+$").as_("quantity"),
-    F.reply_to_message.content_type.in_(settings.ALLOWED_CONTENT_TYPES)
-)
-async def add_pushups_quantity(message: Message, session: AsyncSession, quantity: Match[str]):
-    replied_message = message.reply_to_message
-    entry_date = replied_message.date.astimezone(settings.tzinfo).date()
-    entry = await pushup_entry_repository.filter(
-        session,
-        PushupEntry.user_id == replied_message.from_user.id,
-        PushupEntry.date == entry_date
-    )
-    if len(entry) == 1:
-        entry = entry[0]
-        entry.quantity = int(float(quantity.group()))
-        await session.commit()
-        await message.react(reaction=[ReactionTypeEmoji(emoji="👍")])
-        # await message.reply("Добавил в статистику!")
-    else:
-        await message.reply("Запись не найдена :(")
-
-
-@pushups_router.message(
+@router.message(
     IsNewUser(is_new=True)
 )
 async def message_new_user(message: Message, session: AsyncSession, user: User):

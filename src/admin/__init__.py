@@ -5,7 +5,7 @@ from starlette_admin import I18nConfig
 from starlette_admin.contrib.sqla import Admin
 
 from admin.providers import EnvAuthProvider
-from admin.views import PushupEntryView, UserView
+from admin.views import PushupEntryView, UserView, PointsTransactionView
 from core.config import admin_settings
 from db.base import engine
 from db.models import *
@@ -46,5 +46,14 @@ admin.add_view(
         name="запись отжиманий",
         label="Дневник отжиманий",
         identity="pushup-entry"
+    )
+)
+
+admin.add_view(
+    PointsTransactionView(
+        model=PointsTransaction,
+        name="транзакция",
+        label="Начисления баллов",
+        identity="points-transaction"
     )
 )

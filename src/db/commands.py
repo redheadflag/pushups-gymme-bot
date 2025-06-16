@@ -1,4 +1,5 @@
 from datetime import date, datetime, time, timedelta
+from enum import Enum
 import logging
 from typing import Generic, TypeVar
 
@@ -6,9 +7,12 @@ from sqlalchemy import BinaryExpression, Time, cast, select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
+from bot.enums import EventDetails, PointEvent
+from bot.utils import get_current_datetime
 from core.config import settings
 from db.base import Base
-from db.models import User, PushupEntry
+from db.exceptions import NotFoundError
+from db.models import PointsTransaction, User, PushupEntry
 
 
 logger = logging.getLogger(__name__)
@@ -32,6 +36,12 @@ class DatabaseRepository(Generic[Model]):
     async def get(self, session: AsyncSession, pk: int) -> Model | None:
         return await session.get(self.model, pk)
     
+    async def get_or_raise(self, session: AsyncSession, pk: int) -> Model:
+        instance = await self.get(session, pk)
+        if not instance:
+            raise NotFoundError("Instance not found")
+        return instance
+    
     async def get_all(
         self,
         session: AsyncSession
@@ -51,6 +61,7 @@ class DatabaseRepository(Generic[Model]):
 
 user_repository = DatabaseRepository(User)
 pushup_entry_repository = DatabaseRepository(PushupEntry)
+points_transaction_repository = DatabaseRepository(PointsTransaction)
 
 
 async def add_or_update_user(session: AsyncSession, data: dict) -> User:
@@ -121,7 +132,7 @@ async def get_last_wagon_user(session: AsyncSession, dt: date) -> User | None:
 
 
 async def add_pushup_entry(session: AsyncSession, user: User) -> PushupEntry | None:
-    dt_now = datetime.now(settings.tzinfo)
+    dt_now = get_current_datetime()
     today_date = dt_now.date()
     today_time = dt_now.time()
     if user.last_completed == today_date:
@@ -145,6 +156,7 @@ async def add_pushup_entry(session: AsyncSession, user: User) -> PushupEntry | N
     )
 
     await sync_user_streak(session=session, user=user)
+    await change_points(session, point_event=PointEvent.DAILY_ENTRY_SUBMISSION.value, user=user)
 
     return pushup_entry
 
@@ -160,6 +172,7 @@ async def sync_user_streak(session: AsyncSession, user: User) -> User:
     if not entries:
         user.streak = 0
         user.last_completed = None
+        await session.commit()
         return user
 
     latest_date = entries[0].date
@@ -169,7 +182,6 @@ async def sync_user_streak(session: AsyncSession, user: User) -> User:
     if latest_date < today_date - timedelta(days=2):
         user.streak = 0
         await session.commit()
-        await session.refresh(user)
         return user
 
     streak = 1
@@ -188,7 +200,6 @@ async def sync_user_streak(session: AsyncSession, user: User) -> User:
 
     user.streak = streak
     await session.commit()
-    await session.refresh(user)
     return user
 
 
@@ -206,3 +217,31 @@ async def remove_pushup_entry(session: AsyncSession, user_id: int, entry_date: d
     await session.delete(pushup_entry)
     await session.flush()
     await sync_user_streak(session, await user_repository.get(session, user_id))
+
+
+async def change_points(
+        session: AsyncSession,
+        point_event: EventDetails,
+        user_id: int | None = None,
+        user: User | None = None
+) -> PointsTransaction:
+    if user is None and user_id is None:
+        raise ValueError("You must provide either 'user_id' or 'user'.")
+    
+    if user is None:
+        user = await user_repository.get_or_raise(session, user_id)
+    
+    user.points += point_event.points
+
+    logger.info("Add %i points to user %i", point_event.points, user.id)
+
+    points_transaction = await points_transaction_repository.create(
+        session=session,
+        data=dict(
+            user_id=user_id,
+            points_change=point_event.points,
+            reason=point_event.reason
+        )
+    )
+
+    return points_transaction

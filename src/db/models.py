@@ -1,9 +1,10 @@
 import datetime
+import uuid
 
 from aiogram.utils.markdown import hlink
 from sqlalchemy.ext.asyncio import AsyncSession
 from starlette.requests import Request
-from sqlalchemy import BigInteger, ForeignKey, SmallInteger, String
+from sqlalchemy import UUID, BigInteger, ForeignKey, SmallInteger, String
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from db.base import Base
@@ -22,7 +23,10 @@ class User(TimeStampedMixin, Base):
     
     pushup_entries: Mapped[list["PushupEntry"]] = relationship(back_populates="user")
 
+    points: Mapped[int] = mapped_column(default=0)
     is_admin: Mapped[bool] = mapped_column(default=False)
+
+    points_transactions: Mapped["PointsTransaction"] = relationship(back_populates="user")
 
     @property
     def mention(self) -> str:
@@ -63,3 +67,18 @@ class PushupEntry(Base):
         session: AsyncSession = request.state.session
         await session.refresh(self, attribute_names=["user"])
         return f"{str(self.user)}: {self.date.strftime("%d.%m.%Y")}"
+
+
+class PointsTransaction(TimeStampedMixin, Base):
+    __tablename__ = "points_transactions"
+    id: Mapped[str] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    user_id: Mapped[int] = mapped_column(ForeignKey('users.id'), nullable=False)
+    points_change: Mapped[int] = mapped_column(SmallInteger(), nullable=False)
+    reason: Mapped[str] = mapped_column(String(255))
+
+    user: Mapped["User"] = relationship(back_populates="points_transactions")
+
+    async def __admin_repr__(self, request: Request) -> str:
+        session: AsyncSession = request.state.session
+        await session.refresh(self, attribute_names=["user"])
+        return f"{self.user}, {self.points_change}, {self.reason}"

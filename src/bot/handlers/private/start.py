@@ -1,8 +1,9 @@
-from datetime import datetime, timedelta
+from datetime import datetime
 import logging
 from aiogram import Bot, Router
 from aiogram.filters import CommandStart
 from aiogram.types import Message
+from aiogram.utils.markdown import hlink
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from bot.middlewares.throttling import rate_limit
@@ -16,16 +17,11 @@ router = Router()
 
 @router.message(CommandStart())
 async def start_command_handler(message: Message, session: AsyncSession):
-    pass
-    # await message.answer(f"Hi, {message.from_user.first_name}!")  # type: ignore
-    # await user_repository.create(
-    #     session=session,
-    #     data={
-    #         "id": message.from_user.id,
-    #         "username": message.from_user.username,
-    #         "full_name": message.from_user.full_name
-    #     }
-    # )
+    await message.answer(
+        f"Привет, {message.from_user.first_name}!\n"  # type: ignore
+        f"Это официальный бот для сообщества {hlink("В погоне за пампом", settings.RULES_URL)}!\n"
+        "Напиши любое сообщение, чтобы получить отчет за сегодня"
+    )
 
 
 @router.message()
