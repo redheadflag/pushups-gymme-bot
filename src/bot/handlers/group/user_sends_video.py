@@ -10,7 +10,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from bot.enums import PointEvent
 from bot.filters.new_users import IsNewUser
-from bot.utils import get_current_datetime
+from core.utils import get_current_datetime
 from core import strings
 from core.config import settings
 from core.utils import STREAK_FIRST_DAY_REACTION, bot_set_reaction
@@ -43,7 +43,7 @@ async def user_sends_video_handler(message: Message, session: AsyncSession, user
         await message.reply(strings.last_chance_msg())
     
     if user.streak == 1:
-        if user.created_at.date == get_current_datetime().date:
+        if user.created_at.astimezone(settings.tzinfo) == get_current_datetime().date:
             await message.reply(strings.STREAK_FIRST_DAY)
             await bot_set_reaction(
                 message=message,
@@ -56,7 +56,7 @@ async def user_sends_video_handler(message: Message, session: AsyncSession, user
                 message=message,
                 guaranteed=True
             )
-            await message.reply(strings.USER_WELCOME_BACK.format(user.mention))
+            await message.reply(strings.USER_WELCOME_BACK.format(user=str(user)))
     else:
         additional_message = str()
         if user.streak == 30:

@@ -1,4 +1,4 @@
-from datetime import datetime, timedelta
+from datetime import datetime
 import logging
 from typing import AsyncGenerator
 
@@ -10,10 +10,8 @@ from taskiq_redis import ListQueueBroker
 import taskiq_aiogram
 
 from core.config import settings, redis_settings
-from core.strings import get_daily_report
 from core.utils import send_daily_report
 from db.base import sessionmaker
-from db.commands import get_all_users, get_early_bird_user
 
 
 logger = logging.getLogger(__name__)

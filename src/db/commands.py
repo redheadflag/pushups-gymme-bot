@@ -8,7 +8,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
 from bot.enums import EventDetails, PointEvent
-from bot.utils import get_current_datetime
+from core.utils import get_current_datetime
 from core.config import settings
 from db.base import Base
 from db.exceptions import NotFoundError
@@ -203,6 +203,28 @@ async def sync_user_streak(session: AsyncSession, user: User) -> User:
     return user
 
 
+async def sync_user_points(session: AsyncSession, user: User) -> User:
+    stmt = (
+        select(PointsTransaction).
+        where(PointsTransaction.user_id == user.id)
+    )
+
+    transactions = await session.scalars(stmt)
+    
+    if not transactions:
+        user.points = 0
+        return user
+    
+    user_points = 0
+    
+    for transaction in transactions:
+        user_points += transaction.points_change
+
+    user.points = user_points
+    await session.commit()
+    return user
+
+
 async def remove_pushup_entry(session: AsyncSession, user_id: int, entry_date: date) -> None:
     pushup_entry = await pushup_entry_repository.filter(
         session,
@@ -230,6 +252,8 @@ async def change_points(
     
     if user is None:
         user = await user_repository.get_or_raise(session, user_id)
+    
+    user_id = user_id or user.id
     
     user.points += point_event.points
 

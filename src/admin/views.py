@@ -6,8 +6,8 @@ from starlette.requests import Request
 from starlette_admin.contrib.sqla import ModelView
 from starlette_admin.exceptions import ActionFailed
 
-from db.commands import sync_user_streak, user_repository, pushup_entry_repository
-from db.models import PushupEntry
+from db.commands import sync_user_points, sync_user_streak, user_repository, pushup_entry_repository
+from db.models import PushupEntry, PointsTransaction
 
 
 logger = logging.getLogger(__name__)
@@ -43,3 +43,18 @@ class PushupEntryView(ModelView):
 
 class PointsTransactionView(ModelView):
     form_include_pk = True
+
+    async def after_change(self, request: Request, obj: PointsTransaction) -> None:
+        session: AsyncSession = request.state.session
+        user = await user_repository.get(session=session, pk=obj.user_id)
+        
+        await sync_user_points(session=session, user=user)
+
+    async def after_create(self, request: Request, obj: PointsTransaction) -> None:
+        await self.after_change(request, obj)
+
+    async def after_delete(self, request: Request, obj: Any) -> None:
+        await self.after_change(request, obj)
+    
+    async def after_edit(self, request: Request, obj: Any) -> None:
+        await self.after_change(request, obj)

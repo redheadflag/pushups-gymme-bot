@@ -21,7 +21,7 @@ class User(TimeStampedMixin, Base):
     streak: Mapped[int] = mapped_column(SmallInteger, default=0)
     last_completed: Mapped[datetime.date | None] = mapped_column(nullable=True)
     
-    pushup_entries: Mapped[list["PushupEntry"]] = relationship(back_populates="user")
+    pushup_entries: Mapped[list["PushupEntry"]] = relationship(back_populates="user", innerjoin=True)
 
     points: Mapped[int] = mapped_column(default=0)
     is_admin: Mapped[bool] = mapped_column(default=False)

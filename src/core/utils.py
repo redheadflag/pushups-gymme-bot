@@ -48,3 +48,7 @@ async def send_daily_report(session: AsyncSession, bot: Bot, chat_id: int, dt: d
     )
     
     await bot.send_message(chat_id=chat_id, message_thread_id=topic_id, text=text)
+
+
+def get_current_datetime() -> datetime:
+    return datetime.now(settings.tzinfo)
