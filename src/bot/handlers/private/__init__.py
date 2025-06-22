@@ -1,7 +1,7 @@
 from aiogram import F, Router
 from aiogram.enums import ChatType
 
-from bot.handlers.private import start
+from bot.handlers.private import start, today_report, stats
 from bot.middlewares.throttling import ThrottlingMiddleware
 from core.redis import redis
 
@@ -12,5 +12,7 @@ private_router.message.middleware(ThrottlingMiddleware(redis=redis))
 
 
 private_router.include_routers(
-    start.router
+    start.router,
+    today_report.router,
+    stats.router
 )

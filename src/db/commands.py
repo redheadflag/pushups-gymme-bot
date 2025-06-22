@@ -1,5 +1,4 @@
 from datetime import date, datetime, time, timedelta
-from enum import Enum
 import logging
 from typing import Generic, TypeVar
 
@@ -11,7 +10,7 @@ from bot.enums import EventDetails, PointEvent
 from core.utils import get_current_datetime
 from core.config import settings
 from db.base import Base
-from db.exceptions import NotFoundError
+from exceptions import NotFoundError
 from db.models import PointsTransaction, User, PushupEntry
 from schemas import UserSummary
 

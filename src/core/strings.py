@@ -1,4 +1,5 @@
 from datetime import date, timedelta
+from functools import reduce
 import random
 
 from aiogram.utils.markdown import hlink
@@ -108,3 +109,90 @@ def get_daily_report(
 
     text = "\n\n".join(text_parts)
     return text
+
+
+def get_user_stats(user: User) -> str:
+    if "pushup_entries" not in user.__dict__ or "points_transactions" not in user.__dict__:
+        raise ValueError("You should provide both pushup_entries and points_transactions to call this function")
+    
+    text_parts = list()
+    text_parts.append(
+        "\n".join([
+            f"📈 Статистика {user.as_hlink}",
+            f"Дата регистрации: {user.created_at.strftime("%d.%m.%Y")}",
+            f"Опыт: {user.points_transactions[0].balance_after}"
+        ])
+    )
+
+    max_streak = sorted(user.pushup_entries, key=lambda entry: entry.streak, reverse=True)[0].streak
+
+    user.pushup_entries.sort(key=lambda entry: entry.date, reverse=True)
+    user.points_transactions.sort(key=lambda t: t.created_at, reverse=True)
+
+    text_parts.append(
+        "\n".join([
+            f"🔥 Текущая серия: {pluralize_days(user.pushup_entries[0].streak)}",
+            f"Максимальная серия: {pluralize_days(max_streak)}",
+        ])
+    )
+
+    text_parts.append(
+        "\n\n".join([
+            f"За все время выполнено {pluralize_pushups(reduce(lambda x, y: x + (y.quantity if y.quantity is not None else 0), user.pushup_entries, 0))}",
+            f"🚀 Рекорд за один раз: {pluralize_pushups(max(user.pushup_entries, key=lambda entry: entry.quantity if entry.quantity else 0).quantity)}"
+        ])
+    )
+
+    text_parts.append(
+        "\n".join([
+            "Последние 5 дней",
+            " • ".join([str(entry.quantity or 0) for entry in user.pushup_entries[:5]] + ["0"] * (5 - len(user.pushup_entries[:5])))
+        ])
+    )
+
+    return "\n\n".join(text_parts)
+
+
+def pluralize_days(n: int) -> str:
+    """
+    Возвращает строку с числом и правильным окончанием для слова 'день'.
+
+    Примеры:
+    1 -> "1 день"
+    2 -> "2 дня"
+    5 -> "5 дней"
+    """
+    if 11 <= n % 100 <= 14:
+        ending = "дней"
+    else:
+        last_digit = n % 10
+        if last_digit == 1:
+            ending = "день"
+        elif 2 <= last_digit <= 4:
+            ending = "дня"
+        else:
+            ending = "дней"
+    return f"{n} {ending}"
+
+
+def pluralize_pushups(n: int) -> str:
+    """
+    Возвращает строку с числом и правильным окончанием для слова 'отжимание'.
+
+    Примеры:
+    1 -> "1 отжимание"
+    2 -> "2 отжимания"
+    5 -> "5 отжиманий"
+    """
+    if 11 <= n % 100 <= 14:
+        ending = "отжиманий"
+    else:
+        last_digit = n % 10
+        if last_digit == 1:
+            ending = "отжимание"
+        elif 2 <= last_digit <= 4:
+            ending = "отжимания"
+        else:
+            ending = "отжиманий"
+    return f"{n} {ending}"
+
