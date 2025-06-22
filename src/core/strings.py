@@ -1,4 +1,4 @@
-from datetime import date, timedelta
+from datetime import date, datetime, timedelta
 from functools import reduce
 import random
 
@@ -88,7 +88,7 @@ def get_daily_report(
         else:
             continue
         
-        users_strings.append(f"{sign} {hlink(user.mention, f"tg://user?id={user.id}")} ({user.points})")
+        users_strings.append(f"{sign} {hlink(user.mention, f"tg://user?id={user.id}")}")
     
     text_parts.append("\n".join(users_strings))
 
@@ -120,7 +120,7 @@ def get_user_stats(user: User) -> str:
         "\n".join([
             f"📈 Статистика {user.as_hlink}",
             f"Дата регистрации: {user.created_at.strftime("%d.%m.%Y")}",
-            f"Опыт: {user.points_transactions[0].balance_after}"
+            # f"Опыт: {user.points_transactions[0].balance_after}"
         ])
     )
 
@@ -143,10 +143,15 @@ def get_user_stats(user: User) -> str:
         ])
     )
 
+    today = datetime.now(settings.tzinfo)
+    last_5_days = [(today - timedelta(days=i)).date() for i in range(5)]
+    entries_by_date = {entry.date: entry.quantity or "✅" for entry in user.pushup_entries[:5]}
+    last_5_days_strings = [entries_by_date.get(day, "✖") for day in last_5_days]
+
     text_parts.append(
         "\n".join([
             "Последние 5 дней",
-            " • ".join([str(entry.quantity or 0) for entry in user.pushup_entries[:5]] + ["0"] * (5 - len(user.pushup_entries[:5])))
+            " • ".join(map(str, last_5_days_strings))
         ])
     )
 
