@@ -6,7 +6,7 @@ from sqlalchemy import BinaryExpression, Time, cast, select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
-from bot.enums import EventDetails, PointEvent
+from bot.enums import EventDetails, PointEvent, get_bonus_points_for_quantity
 from core.utils import get_current_datetime
 from core.config import settings
 from db.base import Base
@@ -309,3 +309,13 @@ async def add_points_transaction(
     )
 
     return points_transaction
+
+
+async def add_pushup_quantity_points(session, quantity: int, user: User | None = None, user_id: int | None = None):
+    """Award points for specifying the number of push-ups."""
+    if user is None and user_id is None:
+        raise ValueError("You must provide either 'user_id' or 'user'.")
+    
+    await add_points_transaction(session, point_event=PointEvent.PUSHUP_AMOUNT_SUBMISSION.value, user=user)
+    event_details = get_bonus_points_for_quantity(quantity)
+    await add_points_transaction(session, point_event=event_details, user=user)

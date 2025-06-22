@@ -8,13 +8,13 @@ from aiogram.enums import ContentType
 from aiogram.types import Message
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from bot.enums import PointEvent
+from bot.enums import PointEvent, get_bonus_points_for_quantity
 from bot.filters.new_users import IsNewUser
 from core.utils import get_current_datetime
 from core import strings
 from core.config import settings
 from core.utils import STREAK_FIRST_DAY_REACTION, bot_set_reaction
-from db.commands import add_pushup_entry, add_points_transaction
+from db.commands import add_pushup_entry, add_points_transaction, add_pushup_quantity_points
 from db.models import User
 
 
@@ -36,8 +36,10 @@ async def user_sends_video_handler(message: Message, session: AsyncSession, user
     if message.content_type == ContentType.VIDEO \
             and message.caption \
             and re.fullmatch(r"^\d*\.?\d+$", message.caption):
-        entry.quantity = int(message.caption)
+        quantity = int(message.caption)
+        entry.quantity = quantity
         await session.commit()
+        await add_pushup_quantity_points(session=session, quantity = quantity, user=user)
 
     if entry.timestamp > time(hour=23, minute=55):
         await message.reply(strings.last_chance_msg())

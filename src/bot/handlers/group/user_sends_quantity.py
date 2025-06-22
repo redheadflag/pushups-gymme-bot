@@ -8,8 +8,8 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from bot.enums import PointEvent, get_bonus_points_for_quantity
 from bot.filters.new_users import IsNewUser
 from core.config import settings
-from db.commands import add_points_transaction, pushup_entry_repository, user_repository
-from db.models import PushupEntry
+from db.commands import add_points_transaction, add_pushup_quantity_points, pushup_entry_repository, user_repository
+from db.models import PushupEntry, User
 
 
 logger = logging.getLogger(__name__)
@@ -24,7 +24,7 @@ router = Router()
     F.text.regexp(r"^\d*\.?\d+$").as_("quantity"),
     F.reply_to_message.content_type.in_(settings.ALLOWED_CONTENT_TYPES)
 )
-async def add_pushups_quantity(message: Message, session: AsyncSession, quantity: Match[str]):
+async def add_pushups_quantity(message: Message, session: AsyncSession, quantity: Match[str], user: User):
     pushup_count = int(float(quantity.group()))
     replied_message = message.reply_to_message
     entry_date = replied_message.date.astimezone(settings.tzinfo).date()
@@ -42,8 +42,5 @@ async def add_pushups_quantity(message: Message, session: AsyncSession, quantity
     entry = entry[0]
     entry.quantity = pushup_count
     await session.commit()
-    user = await user_repository.get_or_raise(session, user_id)
-    await add_points_transaction(session, point_event=PointEvent.PUSHUP_AMOUNT_SUBMISSION.value, user=user)
-    event_details = get_bonus_points_for_quantity(pushup_count)
-    await add_points_transaction(session, point_event=event_details, user=user)
+    await add_pushup_quantity_points(session=session, quantity=pushup_count, user=user)
     await message.react(reaction=[ReactionTypeEmoji(emoji="👍")])
