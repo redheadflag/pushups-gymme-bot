@@ -57,6 +57,7 @@ class DbSettings(BaseSettings):
     PASSWORD: str
     HOST: str
     PORT: int
+    INTERNAL_PORT: int = 5432
 
     model_config = SettingsConfigDict(
         env_file=str(ENV_FILE),
@@ -67,7 +68,7 @@ class DbSettings(BaseSettings):
 
     @property
     def url(self) -> str:
-        return f"postgresql+psycopg://{self.USER}:{self.PASSWORD}@{self.HOST}:{self.PORT}/{self.DB}"
+        return f"postgresql+psycopg://{self.USER}:{self.PASSWORD}@{self.HOST}:{self.INTERNAL_PORT}/{self.DB}"
 
 
 class AdminSettings(BaseSettings):
