@@ -13,6 +13,7 @@ from core.config import settings
 from db.base import Base
 from db.exceptions import NotFoundError
 from db.models import PointsTransaction, User, PushupEntry
+from schemas import UserSummary
 
 
 logger = logging.getLogger(__name__)
@@ -87,10 +88,32 @@ async def get_all_users(session: AsyncSession) -> list[User]:
     stmt = (
         select(User).
         options(selectinload(User.pushup_entries)).
-        order_by(User.streak.desc())
+        order_by(User.created_at)
     )
 
     return list(await session.scalars(stmt))
+
+
+async def get_all_users_summary(session: AsyncSession) -> list[UserSummary]:
+    users = await get_all_users(session=session)
+    users_summary = list()
+    for user in users:
+        latest_entry = await user.get_latest_entry(session)
+        latest_entry_date, streak = None, 0
+        if latest_entry:
+            latest_entry_date = latest_entry.date
+            streak = latest_entry.streak
+        points = await user.get_current_points(session)
+        users_summary.append(
+            UserSummary(
+                id=user.id,
+                mention=user.mention,
+                points=points,
+                latest_entry_date=latest_entry_date,
+                current_streak=streak
+            )
+        )
+    return users_summary
 
 
 async def get_early_bird_user(session: AsyncSession, dt: date) -> User | None:
@@ -135,7 +158,8 @@ async def add_pushup_entry(session: AsyncSession, user: User) -> PushupEntry | N
     dt_now = get_current_datetime()
     today_date = dt_now.date()
     today_time = dt_now.time()
-    if user.last_completed == today_date:
+    latest_entry = await user.get_latest_entry(session)
+    if latest_entry and latest_entry.date == today_date:
         logger.info(
             "User id=%i has sent not the first video for today. Adding an entry is skipped",
             user.id 
@@ -146,6 +170,7 @@ async def add_pushup_entry(session: AsyncSession, user: User) -> PushupEntry | N
         "user": user,
         "date": today_date,
         "timestamp": today_time,
+        "streak": (latest_entry.streak + 1) if latest_entry else 1
     }
 
     pushup_entry = await pushup_entry_repository.create(session, data)
@@ -155,8 +180,8 @@ async def add_pushup_entry(session: AsyncSession, user: User) -> PushupEntry | N
         pushup_entry.id, user.id,
     )
 
-    await sync_user_streak(session=session, user=user)
-    await change_points(session, point_event=PointEvent.DAILY_ENTRY_SUBMISSION.value, user=user)
+    # await sync_user_streak(session=session, user=user)
+    await add_points_transaction(session, point_event=PointEvent.DAILY_ENTRY_SUBMISSION.value, user=user)
 
     return pushup_entry
 
@@ -241,7 +266,22 @@ async def remove_pushup_entry(session: AsyncSession, user_id: int, entry_date: d
     await sync_user_streak(session, await user_repository.get(session, user_id))
 
 
-async def change_points(
+async def get_current_balance(
+        session: AsyncSession,
+        user_id: int
+) -> int:
+    """Get the latest points transaction for a user."""
+    stmt = (
+        select(PointsTransaction.balance_after).
+        where(PointsTransaction.user_id == user_id).
+        order_by(PointsTransaction.created_at.desc()).
+        limit(1)
+    )
+    
+    return await session.scalar(stmt) or 0
+
+
+async def add_points_transaction(
         session: AsyncSession,
         point_event: EventDetails,
         user_id: int | None = None,
@@ -255,7 +295,7 @@ async def change_points(
     
     user_id = user_id or user.id
     
-    user.points += point_event.points
+    balance_before = await get_current_balance(session, user_id)
 
     logger.info("Add %i points to user %i", point_event.points, user.id)
 
@@ -264,7 +304,8 @@ async def change_points(
         data=dict(
             user_id=user_id,
             points_change=point_event.points,
-            reason=point_event.reason
+            reason=point_event.reason,
+            balance_after=balance_before+point_event.points
         )
     )
 

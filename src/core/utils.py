@@ -8,7 +8,6 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from core.config import settings
 from core.strings import get_daily_report
-from db.commands import get_all_users, get_early_bird_user, get_last_wagon_user, get_strongest_user
 
 
 logger = logging.getLogger(__name__)
@@ -32,7 +31,14 @@ async def bot_set_reaction(message: Message, reaction: ReactionTypeEmoji | None 
 
 
 async def send_daily_report(session: AsyncSession, bot: Bot, chat_id: int, dt: date, topic_id: int | None = None):
-    users = await get_all_users(session=session)
+    from db.commands import (
+        get_all_users_summary,
+        get_early_bird_user,
+        get_last_wagon_user,
+        get_strongest_user
+    )
+    
+    users = await get_all_users_summary(session=session)
     yesterday_date = dt - timedelta(days=1)
 
     early_bird_user = await get_early_bird_user(session, yesterday_date)
@@ -40,7 +46,7 @@ async def send_daily_report(session: AsyncSession, bot: Bot, chat_id: int, dt: d
     last_wagon_user = await get_last_wagon_user(session, yesterday_date)
 
     text = get_daily_report(
-        users=users,
+        users_summary=users,
         dt=dt,
         early_bird_user=early_bird_user,
         strongest_user=strongest_user,

@@ -8,7 +8,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from bot.enums import PointEvent, get_bonus_points_for_quantity
 from bot.filters.new_users import IsNewUser
 from core.config import settings
-from db.commands import change_points, pushup_entry_repository, user_repository
+from db.commands import add_points_transaction, pushup_entry_repository, user_repository
 from db.models import PushupEntry
 
 
@@ -43,7 +43,7 @@ async def add_pushups_quantity(message: Message, session: AsyncSession, quantity
     entry.quantity = pushup_count
     await session.commit()
     user = await user_repository.get_or_raise(session, user_id)
-    await change_points(session, point_event=PointEvent.PUSHUP_AMOUNT_SUBMISSION.value, user=user)
+    await add_points_transaction(session, point_event=PointEvent.PUSHUP_AMOUNT_SUBMISSION.value, user=user)
     event_details = get_bonus_points_for_quantity(pushup_count)
-    await change_points(session, point_event=event_details, user=user)
+    await add_points_transaction(session, point_event=event_details, user=user)
     await message.react(reaction=[ReactionTypeEmoji(emoji="👍")])

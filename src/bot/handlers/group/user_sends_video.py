@@ -14,7 +14,7 @@ from core.utils import get_current_datetime
 from core import strings
 from core.config import settings
 from core.utils import STREAK_FIRST_DAY_REACTION, bot_set_reaction
-from db.commands import add_pushup_entry, change_points
+from db.commands import add_pushup_entry, add_points_transaction
 from db.models import User
 
 
@@ -42,16 +42,18 @@ async def user_sends_video_handler(message: Message, session: AsyncSession, user
     if entry.timestamp > time(hour=23, minute=55):
         await message.reply(strings.last_chance_msg())
     
-    if user.streak == 1:
+    streak = await user.get_streak(session)
+    
+    if streak == 1:
         if user.created_at.astimezone(settings.tzinfo) == get_current_datetime().date:
             await message.reply(strings.STREAK_FIRST_DAY)
+            await add_points_transaction(session, PointEvent.FIRST_PUSHUPS.value, user=user)
             await bot_set_reaction(
                 message=message,
                 reaction=STREAK_FIRST_DAY_REACTION,
                 guaranteed=True
             )
         else:
-            await change_points(session, PointEvent.FIRST_PUSHUPS.value, user=user)
             await bot_set_reaction(
                 message=message,
                 guaranteed=True
@@ -59,14 +61,14 @@ async def user_sends_video_handler(message: Message, session: AsyncSession, user
             await message.reply(strings.USER_WELCOME_BACK.format(user=str(user)))
     else:
         additional_message = str()
-        if user.streak == 30:
-            await change_points(session, PointEvent.STREAK_30_DAYS.value, user=user)
+        if streak == 30:
+            await add_points_transaction(session, PointEvent.STREAK_30_DAYS.value, user=user)
             additional_message = strings.STREAK_30_DAYS.format(user=str(user))
-        elif user.streak == 100:
-            await change_points(session, PointEvent.STREAK_100_DAYS.value, user=user)
+        elif streak == 100:
+            await add_points_transaction(session, PointEvent.STREAK_100_DAYS.value, user=user)
             additional_message = strings.STREAK_100_DAYS.format(user=str(user))
         
-        if additional_message is not None:
+        if additional_message != "":
             await message.reply(additional_message)
         
         await bot_set_reaction(

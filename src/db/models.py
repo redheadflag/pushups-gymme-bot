@@ -4,7 +4,7 @@ import uuid
 from aiogram.utils.markdown import hlink
 from sqlalchemy.ext.asyncio import AsyncSession
 from starlette.requests import Request
-from sqlalchemy import UUID, BigInteger, ForeignKey, SmallInteger, String
+from sqlalchemy import UUID, BigInteger, ForeignKey, Integer, SmallInteger, String, select
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from db.base import Base
@@ -17,16 +17,40 @@ class User(TimeStampedMixin, Base):
     id: Mapped[int] = mapped_column(BigInteger, primary_key=True, index=True)
     username: Mapped[str] = mapped_column(String(length=32), unique=True, nullable=True)
     full_name: Mapped[str] = mapped_column(String(length=128), nullable=False)
-
-    streak: Mapped[int] = mapped_column(SmallInteger, default=0)
-    last_completed: Mapped[datetime.date | None] = mapped_column(nullable=True)
     
     pushup_entries: Mapped[list["PushupEntry"]] = relationship(back_populates="user", innerjoin=True)
 
-    points: Mapped[int] = mapped_column(default=0)
     is_admin: Mapped[bool] = mapped_column(default=False)
 
-    points_transactions: Mapped["PointsTransaction"] = relationship(back_populates="user")
+    points_transactions: Mapped[list["PointsTransaction"]] = relationship(back_populates="user")
+
+    async def get_latest_entry(self, session: AsyncSession) -> "PushupEntry | None":
+        stmt = (
+            select(PushupEntry)
+            .where(PushupEntry.user_id == self.id)
+            .order_by(PushupEntry.date.desc()).
+            limit(1)
+        )
+        result = await session.execute(stmt)
+        return result.scalar_one_or_none()
+    
+    async def get_streak(self, session: AsyncSession) -> int:
+        latest_entry = await self.get_latest_entry(session)
+        streak = 0
+        if latest_entry:
+            streak = latest_entry.streak
+        return streak
+
+
+    async def get_current_points(self, session: AsyncSession) -> int:
+        stmt = (
+            select(PointsTransaction.balance_after)
+            .where(PointsTransaction.user_id == self.id)
+            .order_by(PointsTransaction.created_at.desc())
+            .limit(1)
+        )
+        result = await session.execute(stmt)
+        return result.scalar_one_or_none() or 0
 
     @property
     def mention(self) -> str:
@@ -60,6 +84,8 @@ class PushupEntry(Base):
     date: Mapped[datetime.date] = mapped_column(nullable=False)
     timestamp: Mapped[datetime.time] = mapped_column(nullable=True)
 
+    streak: Mapped[int] = mapped_column(SmallInteger, nullable=False, default=1)
+
     def __str__(self) -> str:
         return f"Entry id={self.date.strftime("%d.%m.%Y")} user_id={self.user_id}"
 
@@ -75,6 +101,7 @@ class PointsTransaction(TimeStampedMixin, Base):
     user_id: Mapped[int] = mapped_column(ForeignKey('users.id'), nullable=False)
     points_change: Mapped[int] = mapped_column(SmallInteger(), nullable=False)
     reason: Mapped[str] = mapped_column(String(255))
+    balance_after: Mapped[int] = mapped_column(Integer, nullable=False)
 
     user: Mapped["User"] = relationship(back_populates="points_transactions")
 

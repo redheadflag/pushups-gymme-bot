@@ -6,7 +6,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from core.config import settings
 from core.strings import get_daily_report
-from db.commands import get_all_users
+from db.commands import get_all_users_summary
 
 
 router = Router()
@@ -14,9 +14,9 @@ router = Router()
 
 @router.message(Command("today"))
 async def today_report_handler(message: Message, session: AsyncSession):
-    users = await get_all_users(session=session)
+    users_summary = await get_all_users_summary(session=session)
     report_text = get_daily_report(
-        users=users,
+        users_summary=users_summary,
         dt=datetime.now().astimezone(settings.tzinfo).date()
     )
     await message.answer(text=report_text)

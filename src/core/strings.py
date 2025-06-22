@@ -5,6 +5,7 @@ from aiogram.utils.markdown import hlink
 
 from core.config import settings
 from db.models import User
+from schemas import UserSummary
 
 
 STREAK_FIRST_DAY = "Добро пожаловать в клуб! 💪"
@@ -57,7 +58,7 @@ def last_chance_msg() -> str:
 
 
 def get_daily_report(
-    users: list[User],
+    users_summary: list[UserSummary],
     dt: date,
     early_bird_user: User | None = None,
     last_wagon_user: User | None = None,
@@ -66,27 +67,29 @@ def get_daily_report(
     text_parts = list()
     text_parts.append(
         f"Отчёт за {dt.strftime("%d.%m.%Y")}\n" +
-        f"Спортсменов: {sum(1 for u in users if u.last_completed in [dt, dt - timedelta(days=1), dt - timedelta(days=2)])}" 
+        f"Спортсменов: {sum(1 for u in users_summary if u.latest_entry_date in [dt, dt - timedelta(days=1), dt - timedelta(days=2)])}" 
     )
-    
-    users_progress = list()
-    for user in users:
-        if user.streak == 0:
+
+    users_summary.sort(key=lambda u: u.current_streak, reverse=True)
+    users_strings = list()
+
+    for user in users_summary:
+        if user.current_streak == 0:
             continue
-        if user.last_completed == dt:
+        if user.latest_entry_date == dt:
             sign = "✅"
-        elif user.last_completed == dt - timedelta(days=1):
+        elif user.latest_entry_date == dt - timedelta(days=1):
             sign = "⚠️"
-        elif user.last_completed == dt - timedelta(days=2):
+        elif user.latest_entry_date == dt - timedelta(days=2):
             sign = "❄️"
-        elif user.last_completed == dt - timedelta(days=3):
+        elif user.latest_entry_date == dt - timedelta(days=3):
             sign = "❌"
         else:
             continue
         
-        users_progress.append(f"{sign} {hlink(user.mention, f"tg://user?id={user.id}")} ({user.points})")
+        users_strings.append(f"{sign} {hlink(user.mention, f"tg://user?id={user.id}")} ({user.points})")
     
-    text_parts.append("\n".join(users_progress))
+    text_parts.append("\n".join(users_strings))
 
     if any([early_bird_user, last_wagon_user, strongest_user]):
         yesterday_nominations = list()
