@@ -5,10 +5,9 @@ from aiogram import F, Router
 from aiogram.types import Message, ReactionTypeEmoji
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from bot.enums import PointEvent, get_bonus_points_for_quantity
 from bot.filters.new_users import IsNewUser
 from core.config import settings
-from db.commands import add_points_transaction, add_pushup_quantity_points, pushup_entry_repository, user_repository
+from db.commands import add_pushup_quantity_points, pushup_entry_repository
 from db.models import PushupEntry, User
 
 

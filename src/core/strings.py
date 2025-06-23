@@ -136,17 +136,23 @@ def get_user_stats(user: User) -> str:
         ])
     )
 
+    total_quantity = reduce(lambda x, y: x + (y.quantity if y.quantity is not None else 0), user.pushup_entries, 0)
+    max_quantity = max((entry.quantity for entry in user.pushup_entries if entry.quantity is not None), default=0)
+
     text_parts.append(
         "\n\n".join([
-            f"За все время выполнено {pluralize_pushups(reduce(lambda x, y: x + (y.quantity if y.quantity is not None else 0), user.pushup_entries, 0))}",
-            f"🚀 Рекорд за один раз: {pluralize_pushups(max(user.pushup_entries, key=lambda entry: entry.quantity if entry.quantity else 0).quantity)}"
+            f"За все время выполнено {pluralize_pushups(total_quantity)}",
+            f"🚀 Рекорд за один раз: {pluralize_pushups(max_quantity)}"
         ])
     )
 
     today = datetime.now(settings.tzinfo)
-    last_5_days = [(today - timedelta(days=i)).date() for i in range(5)]
+    last_5_days = [(today - timedelta(days=i)).date() for i in reversed(range(5))]
     entries_by_date = {entry.date: entry.quantity or "✅" for entry in user.pushup_entries[:5]}
-    last_5_days_strings = [entries_by_date.get(day, "✖") for day in last_5_days]
+    last_5_days_strings = [
+        entries_by_date.get(day, "⚠️" if day == today.date() else "✖")
+        for day in last_5_days
+    ]
 
     text_parts.append(
         "\n".join([
