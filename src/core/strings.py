@@ -137,14 +137,19 @@ def get_user_stats(user: User) -> str:
     )
 
     total_quantity = reduce(lambda x, y: x + (y.quantity if y.quantity is not None else 0), user.pushup_entries, 0)
-    max_quantity = max((entry.quantity for entry in user.pushup_entries if entry.quantity is not None), default=0)
 
-    text_parts.append(
-        "\n\n".join([
-            f"За все время выполнено {pluralize_pushups(total_quantity)}",
-            f"🚀 Рекорд за один раз: {pluralize_pushups(max_quantity)}"
-        ])
-    )
+    if total_quantity != 0:
+        max_quantity = max((entry.quantity for entry in user.pushup_entries if entry.quantity is not None), default=0)
+        valid_quantities = [entry.quantity for entry in user.pushup_entries if entry.quantity is not None]
+        avg_quantity = int(round(sum(valid_quantities) / len(valid_quantities))) if valid_quantities else 0
+
+        text_parts.append(
+            "\n\n".join([
+                f"За все время выполнено {pluralize_pushups(total_quantity)}",
+                f"🚀 Рекорд за один раз: {pluralize_pushups(max_quantity)}",
+                f"В среднем ты делаешь {pluralize_pushups(avg_quantity)}"
+            ])
+        )
 
     today = datetime.now(settings.tzinfo)
     last_5_days = [(today - timedelta(days=i)).date() for i in reversed(range(5))]
