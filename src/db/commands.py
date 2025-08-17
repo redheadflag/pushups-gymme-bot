@@ -1,6 +1,6 @@
 from datetime import date, datetime, time, timedelta
 import logging
-from typing import Generic, TypeVar
+from typing import Generic, Sequence, TypeVar
 
 from sqlalchemy import BinaryExpression, Time, cast, select
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -319,3 +319,10 @@ async def add_pushup_quantity_points(session, quantity: int, user: User | None =
     await add_points_transaction(session, point_event=PointEvent.PUSHUP_AMOUNT_SUBMISSION.value, user=user)
     event_details = get_bonus_points_for_quantity(quantity)
     await add_points_transaction(session, point_event=event_details, user=user)
+
+
+async def get_admins(session: AsyncSession) -> Sequence[User]:
+    return await user_repository.filter(
+        session,
+        User.is_admin == True
+    )
