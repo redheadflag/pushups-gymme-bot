@@ -14,6 +14,7 @@ logger = logging.getLogger(__name__)
 async def recalculate_streaks_from(session, from_date: date):
     users = await get_all_users(session)
     for user in users:
+        logger.info("Recalculating user %s", repr(user))
         stmt = (
             select(PushupEntry)
             .where(PushupEntry.user_id == user.id)

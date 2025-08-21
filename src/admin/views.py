@@ -8,9 +8,8 @@ from starlette.requests import Request
 from starlette_admin.contrib.sqla import ModelView
 from starlette_admin.exceptions import ActionFailed
 
-from bot.enums import EventDetails
-from db.commands import add_points_transaction, get_current_balance, sync_user_streak, user_repository, pushup_entry_repository
-from db.models import PushupEntry, PointsTransaction
+from db.commands import sync_user_streak, user_repository, pushup_entry_repository
+from db.models import PushupEntry
 
 
 logger = logging.getLogger(__name__)

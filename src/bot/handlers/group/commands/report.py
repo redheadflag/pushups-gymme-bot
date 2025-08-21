@@ -5,7 +5,7 @@ from aiogram.types import Message
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from core.config import settings
-from db.commands import remove_pushup_entry, user_repository
+from db.commands import remove_pushup_entry
 from bot.filters.admin_command import AdminFilter
 
 

@@ -1,2 +1,2 @@
-class NotFoundError(Exception):
+class UserNotFoundError(Exception):
     pass

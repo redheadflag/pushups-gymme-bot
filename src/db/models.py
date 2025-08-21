@@ -4,7 +4,7 @@ import uuid
 from aiogram.utils.markdown import hlink
 from sqlalchemy.ext.asyncio import AsyncSession
 from starlette.requests import Request
-from sqlalchemy import UUID, BigInteger, ForeignKey, Integer, SmallInteger, String, select
+from sqlalchemy import UUID, BigInteger, ForeignKey, Integer, SmallInteger, String, exists, select
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from db.base import Base
@@ -65,12 +65,21 @@ class User(TimeStampedMixin, Base):
             s += f" @{self.username}"
         return s
     
+    def __repr__(self) -> str:
+        return "<User id=%i>" % self.id
+    
     @property
     def as_hlink(self) -> str:
         return hlink(self.mention, f"tg://user?id={self.id}")
     
     async def __admin_repr__(self, request: Request) -> str:
         return self.__str__()
+    
+    @staticmethod
+    async def is_exists(session: AsyncSession, user_id: int) -> bool:
+        stmt = stmt = select(exists().where(User.id == user_id))
+        is_new = await session.scalar(stmt) or False
+        return is_new
 
 
 class PushupEntry(Base):

@@ -1,21 +1,28 @@
+import asyncio
 from datetime import date, datetime, timedelta
 import logging
 import random
+from typing import Sequence
 
 from aiogram import Bot
+from aiogram.exceptions import TelegramNotFound
 from aiogram.types import Message, ReactionTypeEmoji
 from sqlalchemy.ext.asyncio import AsyncSession
 
+
 from core.config import settings
 from core.strings import get_daily_report
+from db.models import User
 
 
 logger = logging.getLogger(__name__)
 
+MESSAGE_SENDING_LATENCY = 1//20  # 20 messages per second
+
 REACTION_LIST = ["❤", "🫡", "👍", "👀", "🥴", "🙈", "🍌", "⚡", "🔥", "🏆"]
 WEIGHTS = [15, 4, 16, 1, 3, 1, 1, 3, 10, 3]
 
-STREAK_FIRST_DAY_REACTION = ReactionTypeEmoji(emoji="❤️‍🔥")
+SPECIAL_REACTION = ReactionTypeEmoji(emoji="❤️‍🔥")
 
 
 async def bot_set_reaction(message: Message, reaction: ReactionTypeEmoji | None = None, guaranteed: bool = True):
@@ -58,3 +65,20 @@ async def send_daily_report(session: AsyncSession, bot: Bot, chat_id: int, dt: d
 
 def get_current_datetime() -> datetime:
     return datetime.now(settings.tzinfo)
+
+
+async def send_message_to_admins(bot: Bot, session: AsyncSession, text: str) -> None:
+    from db.commands import get_admins
+    
+    admins = await get_admins(session)
+    await send_message_to_users(bot, admins, text=text)
+
+
+async def send_message_to_users(bot: Bot, users: Sequence[User], text: str):
+    for user in users:
+        try:
+            await bot.send_message(chat_id=user.id, text=text)
+        except TelegramNotFound:
+            pass
+        else:
+            await asyncio.sleep(MESSAGE_SENDING_LATENCY)

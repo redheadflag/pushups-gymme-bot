@@ -2,7 +2,7 @@ from datetime import date, datetime, time, timedelta
 import logging
 from typing import Generic, Sequence, TypeVar
 
-from sqlalchemy import BinaryExpression, Time, cast, select
+from sqlalchemy import BinaryExpression, Time, cast, exists, select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
@@ -10,7 +10,7 @@ from bot.enums import EventDetails, PointEvent, get_bonus_points_for_quantity
 from core.utils import get_current_datetime
 from core.config import settings
 from db.base import Base
-from exceptions import NotFoundError
+from exceptions import UserNotFoundError
 from db.models import PointsTransaction, User, PushupEntry
 from schemas import UserSummary
 
@@ -39,7 +39,7 @@ class DatabaseRepository(Generic[Model]):
     async def get_or_raise(self, session: AsyncSession, pk: int) -> Model:
         instance = await self.get(session, pk)
         if not instance:
-            raise NotFoundError("Instance not found")
+            raise UserNotFoundError("User instance not found")
         return instance
     
     async def get_all(
@@ -165,11 +165,18 @@ async def add_pushup_entry(session: AsyncSession, user: User) -> PushupEntry | N
         )
         return
     
+    streak = 1
+    latest_entry_date = None
+    if latest_entry:
+        latest_entry_date = latest_entry.date
+        if latest_entry_date and latest_entry_date >= today_date - timedelta(days=2):
+            streak = latest_entry.streak + 1
+    
     data = {
         "user": user,
         "date": today_date,
         "timestamp": today_time,
-        "streak": (latest_entry.streak + 1) if latest_entry else 1
+        "streak": streak
     }
 
     pushup_entry = await pushup_entry_repository.create(session, data)
@@ -178,9 +185,6 @@ async def add_pushup_entry(session: AsyncSession, user: User) -> PushupEntry | N
         "Created pushup entry id=%i, user.id=%i",
         pushup_entry.id, user.id,
     )
-
-    # await sync_user_streak(session=session, user=user)
-    await add_points_transaction(session, point_event=PointEvent.DAILY_ENTRY_SUBMISSION.value, user=user)
 
     return pushup_entry
 
@@ -326,3 +330,19 @@ async def get_admins(session: AsyncSession) -> Sequence[User]:
         session,
         User.is_admin == True
     )
+
+
+async def is_user_newbie(session: AsyncSession, user_id: int) -> bool:
+    """
+    Checks both user existence in db and whether they have at least one pushup entry
+    """
+    stmt = select(
+        exists().where(
+            (User.id == user_id) &
+            (
+                exists().where(PushupEntry.user_id == User.id)
+            )
+        )
+    )
+    is_existing = await session.scalar(stmt) or False
+    return is_existing
