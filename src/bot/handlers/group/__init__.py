@@ -1,7 +1,7 @@
 from aiogram import F, Router
 from aiogram.enums import ChatType
 
-from bot.handlers.group import commands, general, user_sends_quantity, user_sends_video, new_users
+from bot.handlers.group import commands, general, user_sends_collaboration, user_sends_quantity, user_sends_video, new_users
 from bot.middlewares.events import EventMiddleware
 from bot.middlewares.user_context import UserContextMiddleware
 from core.config import settings
@@ -31,7 +31,8 @@ pushups_router.include_routers(
     new_users.router,
     commands.command_router,
     user_sends_quantity.router,
-    user_sends_video.router
+    user_sends_video.router,
+    user_sends_collaboration.router,
 )
 
 group_router.include_routers(

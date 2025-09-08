@@ -115,6 +115,19 @@ async def get_all_users_summary(session: AsyncSession) -> list[UserSummary]:
     return users_summary
 
 
+async def get_user_by_id(session: AsyncSession, username: str) -> User:
+    stmt = (
+        select(User).
+        where(User.username == username)
+    )
+
+    user = await session.scalar(stmt)
+    if not user:
+        raise ValueError("User not found")
+    
+    return user
+
+
 async def get_early_bird_user(session: AsyncSession, dt: date) -> User | None:
     stmt = (
         select(User).
@@ -153,12 +166,12 @@ async def get_last_wagon_user(session: AsyncSession, dt: date) -> User | None:
     return await session.scalar(stmt)
 
 
-async def add_pushup_entry(session: AsyncSession, user: User) -> PushupEntry | None:
-    dt_now = get_current_datetime()
-    today_date = dt_now.date()
-    today_time = dt_now.time()
+async def add_pushup_entry(session: AsyncSession, user: User, dt: datetime | None = None, entry_data: dict | None = None) -> PushupEntry | None:
+    if not dt:
+        dt = get_current_datetime()
+    
     latest_entry = await user.get_latest_entry(session)
-    if latest_entry and latest_entry.date == today_date:
+    if latest_entry and latest_entry.date == dt.date():
         logger.info(
             "User id=%i has sent not the first video for today. Adding an entry is skipped",
             user.id 
@@ -169,15 +182,18 @@ async def add_pushup_entry(session: AsyncSession, user: User) -> PushupEntry | N
     latest_entry_date = None
     if latest_entry:
         latest_entry_date = latest_entry.date
-        if latest_entry_date and latest_entry_date >= today_date - timedelta(days=2):
+        if latest_entry_date and latest_entry_date >= dt.date() - timedelta(days=2):
             streak = latest_entry.streak + 1
     
     data = {
         "user": user,
-        "date": today_date,
-        "timestamp": today_time,
+        "date": dt.date(),
+        "timestamp": dt.time(),
         "streak": streak
     }
+    
+    if entry_data:
+        data.update(entry_data)
 
     pushup_entry = await pushup_entry_repository.create(session, data)
     
