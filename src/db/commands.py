@@ -334,7 +334,10 @@ async def get_admins(session: AsyncSession) -> Sequence[User]:
 
 async def is_user_newbie(session: AsyncSession, user_id: int) -> bool:
     """
-    Checks both user existence in db and whether they have at least one pushup entry
+    Checks two things:
+    - existence in db
+    - whether user has at least one pushup entry
+    if both are True, returns True.
     """
     stmt = select(
         exists().where(

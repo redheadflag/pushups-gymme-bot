@@ -29,7 +29,7 @@ class UserContextMiddleware(BaseMiddleware):
         is_newbie = await is_user_newbie(session=session, user_id=user_id)
         user_context.is_new = not(is_newbie)
 
-        if event.chat.id != settings.GROUP_ID or event.message_thread_id != settings.TOPIC_ID:
+        if event.chat.id != settings.GROUP_ID or event.message_thread_id != settings.PUSHUPS_TOPIC_ID:
             return await handler(event, data)
 
         user = await add_or_update_user(
@@ -47,7 +47,7 @@ class UserContextMiddleware(BaseMiddleware):
 
 
 class UserContext:
-    def __init__(self, *, user: User | None = None, user_id: int | None = None, is_new: bool | None = None, latest_pushup_entry: PushupEntry | None = None):
+    def __init__(self, *, user_id: int, user: User | None = None, is_new: bool | None = None, latest_pushup_entry: PushupEntry | None = None):
         self._user = user
         self._user_id = user_id
         if not any([self._user, self._user_id]):
@@ -74,6 +74,10 @@ class UserContext:
     @is_new.setter
     def is_new(self, value: bool) -> None:
         self._is_new = value
+    
+    @property
+    def user_id(self) -> int:
+        return self._user_id
 
     async def get_latest_pushup_entry(self, session: AsyncSession) -> PushupEntry:
         if not self._latest_pushup_entry:

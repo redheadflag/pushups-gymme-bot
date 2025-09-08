@@ -11,7 +11,7 @@ from bot.middlewares.user_context import UserContext
 from core import strings
 from core.config import settings
 from core.utils import bot_set_reaction
-from db.commands import add_pushup_entry, add_pushup_quantity_points
+from db.commands import add_pushup_entry
 
 
 logger = logging.getLogger(__name__)

@@ -20,7 +20,8 @@ class Settings(BaseSettings):
 
     BOT_TOKEN: SecretStr
     GROUP_ID: int
-    TOPIC_ID: int
+    GENERAL_TOPIC_ID: int
+    PUSHUPS_TOPIC_ID: int
 
     TIMEZONE: str
 
