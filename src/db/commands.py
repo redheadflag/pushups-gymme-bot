@@ -115,7 +115,7 @@ async def get_all_users_summary(session: AsyncSession) -> list[UserSummary]:
     return users_summary
 
 
-async def get_user_by_id(session: AsyncSession, username: str) -> User:
+async def get_user_by_username(session: AsyncSession, username: str) -> User:
     stmt = (
         select(User).
         where(User.username == username)
